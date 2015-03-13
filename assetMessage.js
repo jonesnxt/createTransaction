@@ -188,9 +188,8 @@ function assetMessageTransaction(recipient, quantityQNT, asset, message, secretP
 
 	txbytes = txbytes.concat(pad(32, 0)); // ref full hash
 
-	txbytes = converters.hexStringToByteArray(converters.byteArrayToHexString(txbytes));
 	// break into signed and unsigned here
-	var signable = txbytes;
+
 	txbytes = txbytes.concat(pad(64, 0)); // signature empty
 
 	var appendages = 1;
@@ -202,7 +201,6 @@ function assetMessageTransaction(recipient, quantityQNT, asset, message, secretP
 
 	var ast = (new BigInteger(asset)).toByteArray().reverse();
 	if(ast.length == 9) ast = ast.slice(0, 8);
-
 	while(ast.length < 8) ast = ast.concat(zeroArray);
 	txbytes = txbytes.concat(ast);
 
@@ -215,40 +213,16 @@ function assetMessageTransaction(recipient, quantityQNT, asset, message, secretP
 
 	var messageLength = wordBytes(message.length);
 	txbytes = txbytes.concat(messageLength);
+	txbytes.push(0); txbytes.push(128);
 
 	var messageBytes = converters.stringToByteArray(message);
 	txbytes = txbytes.concat(messageBytes);
-	txbytes.push(0); txbytes.push(128);
+			
+	// we have a issue with validation and negatives here so we need to swap in and out of hex to get rid of negative bytes
+	txbytes = converters.hexStringToByteArray(converters.byteArrayToHexString(txbytes));
 
-	// now we put the signature into the sigless version we created earlier and refill the rest the tx...
 	var sig = signBytes(txbytes, secretPhrase);
-	signable = signable.concat(sig);
+	var signable = txbytes.slice(0, 96).concat(sig).concat(txbytes.slice(96+64));
 
-	var appendages = 1;
-	signable.push(appendages);
-	signable = signable.concat(pad(15, 0));
-	
-	var assetVersion = 1;
-	signable.push(assetVersion);
-
-	var ast = (new BigInteger(asset)).toByteArray().reverse();
-	if(ast.length == 9) ast = ast.slice(0, 8);
-	while(ast.length < 8) ast = ast.concat(zeroArray);
-	signable = signable.concat(ast);
-
-	var qnt = converters.int32ToBytes(quantityQNT);
-	while(qnt.length < 8) qnt = qnt.concat(zeroArray);
-	signable = signable.concat(qnt);
-
-	var messageVersion = 1;
-	signable.push(messageVersion);
-
-	var messageLength = wordBytes(message.length);
-	signable = signable.concat(messageLength);
-	signable.push(0); signable.push(128);
-
-	var messageBytes = converters.stringToByteArray(message);
-	signable = signable.concat(messageBytes);
-	// now we have a full tx...
 	return signable;		
 }
