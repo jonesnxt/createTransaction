@@ -176,6 +176,9 @@ function assetMessageTransaction(recipient, quantityQNT, asset, message, secretP
 	var rec = new NxtAddress();
 	rec.set(recipient);
 	var recip = (new BigInteger(rec.account_id())).toByteArray().reverse();
+	
+	if(recip.length == 9) recip = recip.slice(0,8);
+	
 	txbytes = txbytes.concat(recip);
 
 	var amount = ((new BigInteger(String(parseInt(0))))).toByteArray().reverse();
